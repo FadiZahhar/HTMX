@@ -1,90 +1,39 @@
 import express from 'express';
 
-import PRODUCTS from './products.js';
+import { AVAILABLE_LOCATIONS } from './data/available-locations.js';
+import renderLocationsPage from './views/index.js';
+import renderLocation from './views/components/location.js';
 
 const app = express();
 
+const INTERESTING_LOCATIONS = [];
+
 app.use(express.static('public'));
-app.use(express.urlencoded({ extended: false })); 
+app.use(express.urlencoded({ extended: false }));
 
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Shop</title>
-        <link rel="stylesheet" href="/advanced-main-part4.css">
-        <script src="/htmx.js" defer></script>
-      </head>
-      <body>
-        <header id="main-header">
-          <div id="main-title">
-            <a href="/">
-              <img src="/part4-logo.png" alt="Elegant model" />
-              <h1>Elegant Clothing</h1>
-            </a>
-          </div>
-        </header>
-        <main id="shop">
-          <h2>Elegant Clothing For Everyone</h2>
-
-          <ul id="products">
-            ${PRODUCTS.map(
-              (product) => `
-              <article class="product">
-                <a href="/products/${product.id}">
-                  <img src="/images/${product.image}" alt="${product.title}" />
-                  <div class="product-content">
-                    <h3>${product.title}</h3>
-                    <p class="product-price">$${product.price}</p>
-                  </div>
-                </a>
-              </article>
-            `
-            ).join('')}
-          </ul>
-        </main>
-      </body>
-    </html>
-  `);
+  const availableLocations = AVAILABLE_LOCATIONS.filter(
+    (location) => !INTERESTING_LOCATIONS.includes(location)
+  );
+  res.send(renderLocationsPage(availableLocations, INTERESTING_LOCATIONS));
 });
 
-app.get('/products/:id', (req, res) => {
-  const product = PRODUCTS.find((product) => product.id === req.params.id);
+app.post('/places', (req, res) => {
+  const locationId = req.body.locationId;
+  const location = AVAILABLE_LOCATIONS.find((loc) => loc.id === locationId);
+  INTERESTING_LOCATIONS.push(location);
 
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${product.title}</title>
-        <link rel="stylesheet" href="/main.css">
-        <script src="/htmx.js" defer></script>
-      </head>
-      <body>
-        <header id="main-header">
-          <div id="main-title">
-            <a href="/">
-              <img src="/part4-logo.png" alt="Elegant model" />
-              <h1>Elegant Clothing</h1>
-            </a>
-          </div>
-        </header>
-        <main id="product">
-          <header>
-            <img src="/images/${product.image}" alt="${product.title}">
-            <div>
-              <h1>${product.title}</h1>
-              <p id="product-price">$${product.price}</p>
-              <form method="post" action="/cart">
-                <button>Add to Cart</button>
-              </form>
-            </div>
-          </header>
-          <p id="product-description">${product.description}</p>
-        </main>
-      </body>
-    </html>
-  `);
+  res.send(renderLocation(location,false));
+});
+
+app.delete('/places/:id', (req, res) => {
+  const locationId = req.params.id;
+  const locationIndex = INTERESTING_LOCATIONS.findIndex(
+    (loc) => loc.id === locationId
+  );
+  INTERESTING_LOCATIONS.splice(locationIndex, 1);
+
+  res.send();
 });
 
 app.listen(3000);
